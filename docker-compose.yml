@@ -1,0 +1,12 @@
+version: '3.3'
+
+services:
+  checker:
+    user: 'root'
+    build: 
+      context: ./checker
+      dockerfile: Dockerfile
+    command: sh -c "python host_checker.py"
+    ports:
+      - "35:3500"
+
