@@ -1,10 +1,7 @@
 import os
-
 import asyncio
 import requests
-import time
 from dotenv import load_dotenv
-
 from datetime import datetime
 from telegram import Bot
 
@@ -21,12 +18,12 @@ def check_server():
     try:
         response = requests.get(SERVER_URL, timeout=5)
         response.raise_for_status()
-        return True, None
+        return True
     except Exception as e:
         return False, str(e)
 
 def print_log(event):
-    timestamp = datetime.now().strftime("%Y-%m-%d%H:%M:%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(f'logs/c.log', 'a') as f:
         f.write(f"{timestamp}: {event}\n")
 
@@ -35,15 +32,31 @@ async def send_message(message):
 
 async def main():
     print("Running")
+    prev_error_message = None
+    error_count = 0
+    
     while True:
         is_server_up, error_message = check_server()
         print(datetime.now(), "Server is up:", is_server_up)
 
         if not is_server_up:
-            log_message = f"Server Shutdown: {error_message}"
+            error_count += 1
+            log_message = f"Server Shutdown: {error_count} consecutive errors"
+            
+            if error_count >= 5:
+                break
+            
+            # Проверяем, является ли текущая ошибка такой же, как предыдущая
+            if error_message == prev_error_message:
+                log_message += " (same error)"
+            else:
+                log_message += f" (new error: {error_message})"
+            
             print(log_message)
-            await send_message(f'Server Shutdown, смотрите логи: {error_message}')
+            await send_message(f'Server Shutdown, смотрите логи: {log_message}')
             print_log(log_message)
+
+            prev_error_message = error_message
 
         await asyncio.sleep(CHECK_INTERVAL)
 
